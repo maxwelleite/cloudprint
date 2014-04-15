@@ -5,6 +5,8 @@ import urlparse
 import UserDict
 import UserList
 import UserString
+import os
+from urlparse import urlparse
 
 class REST:
     class RESTException(Exception):
@@ -41,10 +43,22 @@ class REST:
 
     def __init__(self, host, auth=None, debug=False):
         proto, host = host.split('://')
-        if proto == 'https':
-            self._conn = httplib.HTTPSConnection(host)
+
+        http_proxy = os.environ.get('http_proxy')
+        if http_proxy is not None:
+            proxy= urlparse(http_proxy)
+            if proto == 'https':
+                c = httplib.HTTPSConnection(proxy.hostname, proxy.port)
+            else:
+                c = httplib.HTTPConnection(proxy.hostname, proxy.port)
+            c.set_tunnel(host)
+            self._conn = c
         else:
-            self._conn = httplib.HTTPConnection(host)
+            if proto == 'https':
+                self._conn = httplib.HTTPSConnection(host)
+            else:
+                self._conn = httplib.HTTPConnection(host)
+
         self.debug = debug
         if debug:
             self._conn.set_debuglevel(10)
