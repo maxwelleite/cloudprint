@@ -3,6 +3,8 @@ import ssl
 import socket
 import select
 import time
+import os, socks
+from urlparse import urlparse
 
 from collections import deque
 from xml.etree.ElementTree import XMLParser, TreeBuilder
@@ -113,7 +115,16 @@ class XmppConnection(object):
 
         LOGGER.info("Establishing connection to xmpp server %s:%i" %
                     (host, port))
-        self._xmppsock = socket.socket()
+
+        http_proxy = os.environ.get('http_proxy')
+        if http_proxy is not None:
+            proxy= urlparse(http_proxy)
+            s = socks.socksocket()
+            s.setproxy(socks.PROXY_TYPE_HTTP, proxy.hostname, proxy.port)
+            self._xmppsock = s
+        else:
+            self._xmppsock = socket.socket()
+
         self._wrappedsock = self._xmppsock
 
         try:
